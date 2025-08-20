@@ -13,3 +13,9 @@ export interface CreateUserInput {
   email: string
   password_hash: string
 }
+
+export interface CreatedUser {
+  id: number
+  username: string
+  email: string
+}
