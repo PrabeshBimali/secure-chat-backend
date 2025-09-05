@@ -28,10 +28,16 @@ class ForbiddenError extends HTTPError {
   }
 }
 
+class UnauthorizedError extends HTTPError {
+  constructor(messaage: string = "Unauthorized") {
+    super(messaage, 401)
+  }
+}
+
 class ServerError extends HTTPError {
   constructor(message: string = "Server Error") {
     super(message, 500)
   }
 }
 
-export { HTTPError, BadRequestError, NotFoundError, ForbiddenError, ServerError };
+export { HTTPError, BadRequestError, NotFoundError, ForbiddenError, UnauthorizedError, ServerError };
