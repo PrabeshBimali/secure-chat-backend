@@ -41,11 +41,19 @@ export async function createNewUser(username: string, email: string, password: s
 
     if(error instanceof DatabaseError) {
       if(error.constraint === "unique_email") {
-        throw new BadRequestError("Email Already Exists", "email")
+        throw new BadRequestError("Bad Request", {
+          "fieldErrors": {
+            "email": "Email Already Exists"
+          }
+        });
       }
 
       if(error.constraint === "unique_username") {
-        throw new BadRequestError("Username Already Exists", "username")
+        throw new BadRequestError("Bad Request", {
+          "fieldErrors": {
+            "username": "Username Already Exists"
+          }
+        })
       }
     }
 
@@ -129,18 +137,18 @@ export async function verifyEmailToken(token: string) {
   }
 }
 
-export async function getUserWithValidCredentials(email: string, password: string): Promise<User> {
-  const user = await userRepo.findByEmail(email)
-
-  if(!user) {
-    throw new BadRequestError("Invalid Credentials")
-  }
-
-  const match = await bcrypt.compare(password, user.password_hash)
-
-  if(!match) {
-    throw new BadRequestError("Invalid Credentials")
-  }
-
-  return user
-}
+//export async function getUserWithValidCredentials(email: string, password: string): Promise<User> {
+//  const user = await userRepo.findByEmail(email)
+//
+//  if(!user) {
+//    throw new BadRequestError("Invalid Credentials")
+//  }
+//
+//  const match = await bcrypt.compare(password, user.password_hash)
+//
+//  if(!match) {
+//    throw new BadRequestError("Invalid Credentials")
+//  }
+//
+//  return user
+//}

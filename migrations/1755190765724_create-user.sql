@@ -12,7 +12,5 @@ CREATE TABLE IF NOT EXISTS public.users
     CONSTRAINT unique_email UNIQUE (email)
 );
 
-INSERT INTO users(username, email, password_hash) VALUES('john123', 'john@gmail.com', 'fefef424tggag');
-
 -- Down Migration
 DROP TABLE users;

@@ -9,10 +9,10 @@ class HTTPError extends Error {
 }
 
 class BadRequestError extends HTTPError {
-  field?: string;
-  constructor(message: string = "Bad Request", field?: string) {
+  details: Record<string, any>
+  constructor(message: string = "Bad Request", details: Record<string, any> = {}) {
     super(message, 400);
-    this.field = field
+    this.details = details
   }
 }
 

@@ -1,7 +1,7 @@
 interface ErrorResponse {
   success: false
   message: string
-  field?: string
+  details?: Record<string, any>
 }
 
 interface SuccessResponse<T> {
@@ -10,11 +10,11 @@ interface SuccessResponse<T> {
   data?: T
 }
 
-export function createErrorResponse(message: string, field?: string): ErrorResponse {
+export function createErrorResponse(message: string, details?: Record<string, any>): ErrorResponse {
   const response: ErrorResponse = {
     success: false,
     message: message,
-    field : field
+    details : details
   }
 
   return response
