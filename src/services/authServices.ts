@@ -1,6 +1,7 @@
-import bcrypt from "bcrypt"
 import * as userRepo from "../repositories/userRepository.js"
-import { CreatedUser, CreateUserInput, User } from "../models/User.js"
+import * as deviceRepo from "../repositories/deviceRepository.js"
+import * as tokenRepo from "../repositories/tokenRepository.js"
+import { CreatedUser, InsertUser } from "../models/User.js"
 import { DatabaseError } from "pg"
 import { BadRequestError } from "../errors/HTTPErrors.js"
 import { EmailVerificationToken } from "../models/Token.js"
@@ -8,7 +9,9 @@ import jwt, { JwtPayload } from "jsonwebtoken"
 import nodemailer from "nodemailer"
 import authConfig from "../config/authConfig.js"
 import appConfig from "../config/appConfig.js"
-import * as tokenRepo from "../repositories/tokenRepository.js"
+import db from "../config/db.js"
+import { InsertDevice } from "../models/Device.js"
+import { RegistrationPayload } from "../zod/schema.js"
 
 interface EmailVerificationJWTPayload extends JwtPayload {
   userId: number
@@ -24,20 +27,37 @@ const emailTransporter = nodemailer.createTransport({
     }
 });
 
-export async function createNewUser(username: string, email: string, password: string): Promise<CreatedUser> {
-  try{
-    const salt = await bcrypt.genSalt()
-    const password_hash = await bcrypt.hash(password, salt)
+export async function createNewUser(userInfo: RegistrationPayload): Promise<CreatedUser> {
+  const client = await db.connect()
 
-    const newUser: CreateUserInput = {
-      username,
-      email,
-      password_hash
+  const user: InsertUser = {
+    username: userInfo.username,
+    email: userInfo.email,
+    identity_pbk: userInfo.identity_pbk,
+    encryption_pbk: userInfo.encryption_pbk
+  }
+
+  try{
+
+    await client.query("BEGIN")
+    const createdUser = await userRepo.insert(client, user)
+    console.log(createdUser)
+
+    const device: InsertDevice = {
+      device_name: userInfo.device.name,
+      device_pbk: userInfo.device.device_pbk,
+      os: userInfo.device.os,
+      browser: userInfo.device.browser,
+      userid: createdUser.id
     }
 
-    const createdUser = await userRepo.insert(newUser)
+    await deviceRepo.insert(client, device)
+    await client.query("COMMIT")
+
     return createdUser
   } catch(error) {
+
+    await client.query("ROLLBACK")
 
     if(error instanceof DatabaseError) {
       if(error.constraint === "unique_email") {
@@ -58,6 +78,9 @@ export async function createNewUser(username: string, email: string, password: s
     }
 
     throw error
+  
+  } finally {
+    client.release()
   }
 }
 

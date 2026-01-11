@@ -1,12 +1,10 @@
 import { NextFunction, Request, Response } from "express";
-import { validateEmail, validatePassword, validateUsername } from "../helpers/userValidation.js";
+import { validateEmail } from "../helpers/userValidation.js";
 import { createEmailVerificationToken, createNewUser, sendEmailVerification, verifyEmailToken } from "../services/authServices.js";
 import { createErrorResponse, createSuccessResponse } from "../helpers/responseCreator.js";
 import { BadRequestError, NotFoundError } from "../errors/HTTPErrors.js";
 import * as userRepo from "../repositories/userRepository.js"
 import { AuthRequest } from "../middlewares/requireAuth.js";
-import * as z from "zod"
-import { RegistrationPayload, RegistrationRequestSchema } from "../zod/schema.js";
 
 interface UserInfoForClient {
   userid: number;
@@ -15,11 +13,10 @@ interface UserInfoForClient {
 
 export async function registerUser(req: Request, res: Response, next: NextFunction) {
   try {
-    console.log(req.body)
-    //const createdUser = await createNewUser(payload.username, payload.email, password)
+    const createdUser = await createNewUser(req.body)
     
-    //const response = createSuccessResponse("User Registered!", createdUser)
-    //res.status(201).json(response)
+    const response = createSuccessResponse("User Registered!", createdUser)
+    res.status(201).json(response)
   } catch(error) {
     next(error)
   }

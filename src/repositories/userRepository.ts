@@ -1,9 +1,10 @@
+import { PoolClient } from "pg";
 import db from "../config/db.js"
-import { CreatedUser, CreateUserInput, User } from "../models/User.js";
+import { CreatedUser, InsertUser, User } from "../models/User.js";
 
-export async function insert(newUser: CreateUserInput): Promise<CreatedUser> {
-  const query = `INSERT INTO users(username, email, password_hash) VALUES($1, $2, $3) RETURNING id, username, email`
-  const val = await db.query(query, [newUser.username, newUser.email, newUser.password_hash])
+export async function insert(client: PoolClient, user: InsertUser): Promise<CreatedUser> {
+  const query = `INSERT INTO users(username, email, identity_pbk, encryption_pbk) VALUES($1, $2, $3, $4) RETURNING id, username, email`
+  const val = await client.query(query, [user.username, user.email, user.identity_pbk, user.encryption_pbk])
   return val.rows[0] as CreatedUser
 }
 

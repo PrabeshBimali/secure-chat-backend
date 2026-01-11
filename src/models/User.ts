@@ -7,10 +7,11 @@ export interface User {
   updated_at: Date
 }
 
-export interface CreateUserInput {
+export interface InsertUser {
   username: string
   email: string
-  password_hash: string
+  encryption_pbk: string
+  identity_pbk: string
 }
 
 export interface CreatedUser {
