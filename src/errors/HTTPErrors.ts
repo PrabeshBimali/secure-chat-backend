@@ -17,26 +17,34 @@ class BadRequestError extends HTTPError {
 }
 
 class NotFoundError extends HTTPError {
-  constructor(message: string = "Not Found") {
-    super(message, 404);
+  details: Record<string, any>
+  constructor(message: string = "Not Found", details: Record<string, any> = {}) {
+    super(message, 404)
+    this.details = details
   }
 }
 
 class ForbiddenError extends HTTPError {
-  constructor(message: string = "Forbidden") {
+  details: Record<string, any>
+  constructor(message: string = "Forbidden", details: Record<string, any> = {}) {
     super(message, 403);
+    this.details = details
   }
 }
 
 class UnauthorizedError extends HTTPError {
-  constructor(messaage: string = "Unauthorized") {
+  details: Record<string, any>
+  constructor(messaage: string = "Unauthorized", details: Record<string, any> = {}) {
     super(messaage, 401)
+    this.details = details
   }
 }
 
 class ServerError extends HTTPError {
-  constructor(message: string = "Server Error") {
+  details: Record<string, any>
+  constructor(message: string = "Server Error", details: Record<string, any> = {}) {
     super(message, 500)
+    this.details = details
   }
 }
 

@@ -1,6 +1,5 @@
 import { NextFunction, Request, Response } from "express";
-import { validateEmail } from "../helpers/userValidation.js";
-import { createEmailVerificationToken, createNewUser, sendEmailVerification, verifyEmailToken } from "../services/authServices.js";
+import { createEmailVerificationToken, createNewUser, createNonceForSigning, isUserAndDeviceValid, sendEmailVerification, verifyEmailToken } from "../services/authServices.js";
 import { createErrorResponse, createSuccessResponse } from "../helpers/responseCreator.js";
 import { BadRequestError, NotFoundError } from "../errors/HTTPErrors.js";
 import * as userRepo from "../repositories/userRepository.js"
@@ -29,8 +28,6 @@ export async function sendEmailVerificationLink(req: Request, res: Response, nex
     if(!Number(id)) {
       throw new BadRequestError()
     }
-
-    validateEmail(email.trim())
 
     const user = await userRepo.findById(id)
 
@@ -72,42 +69,27 @@ export async function verifyEmail(req: Request, res: Response, next: NextFunctio
   }
 }
 
-//export async function login(req: Request, res: Response, next: NextFunction) {
-//  try {
-//    const {email, password} = req.body
-//
-//    validateEmail(email.trim())
-//    validatePassword(password.trim())
-//
-//    const validUser = await getUserWithValidCredentials(email, password)
-//
-//    if(!validUser.email_verified) {
-//      const response = createSuccessResponse("Email not Verified!. Redirecting...", {
-//        email: validUser.email,
-//        id: validUser.id
-//      })
-//      return res.status(403).json(response)
-//    }
-//
-//    const token = jwt.sign({ userId: validUser.id }, authConfig.jwtSecretKey, { expiresIn: "1h" })
-//    res.cookie("token", token, {
-//      httpOnly: true,
-//      secure: process.env.NODE_ENV === "production",
-//      sameSite: "strict",
-//      maxAge: 60 * 60 * 1000,
-//    })
-//
-//    const userInfo: UserInfoForClient = {
-//      userid: validUser.id,
-//      username: validUser.username
-//    }
-//
-//    const response = createSuccessResponse("Logged in...", userInfo)
-//    return res.status(200).json(response)    
-//  } catch(error) {
-//    next(error)
-//  }
-//}
+export async function requestChallenge(req: Request, res: Response, next: NextFunction) {
+  try {
+
+    const userid = await isUserAndDeviceValid(req.body)
+    const nonce = await createNonceForSigning(userid, req.body.device_pbk)
+
+    const response = createSuccessResponse("Sign the nonce", {userid, nonce})
+    res.status(200).json(response)
+
+
+    //const token = jwt.sign({ userId: validUser.id }, authConfig.jwtSecretKey, { expiresIn: "1h" })
+    //res.cookie("token", token, {
+    //  httpOnly: true,
+    //  secure: process.env.NODE_ENV === "production",
+    //  sameSite: "strict",
+    //  maxAge: 60 * 60 * 1000,
+    //})
+  } catch(error) {
+    next(error)
+  }
+}
 
 export async function me(req: AuthRequest, res: Response, next: NextFunction) {
   try {

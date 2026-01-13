@@ -3,7 +3,7 @@ import * as deviceRepo from "../repositories/deviceRepository.js"
 import * as tokenRepo from "../repositories/tokenRepository.js"
 import { CreatedUser, InsertUser } from "../models/User.js"
 import { DatabaseError } from "pg"
-import { BadRequestError } from "../errors/HTTPErrors.js"
+import { BadRequestError, ForbiddenError } from "../errors/HTTPErrors.js"
 import { EmailVerificationToken } from "../models/Token.js"
 import jwt, { JwtPayload } from "jsonwebtoken"
 import nodemailer from "nodemailer"
@@ -11,7 +11,8 @@ import authConfig from "../config/authConfig.js"
 import appConfig from "../config/appConfig.js"
 import db from "../config/db.js"
 import { InsertDevice } from "../models/Device.js"
-import { RegistrationPayload } from "../zod/schema.js"
+import { LoginRequestPayload, RegistrationRequestPayload } from "../zod/schema.js"
+import redisClient from "../config/redisClient.js"
 
 interface EmailVerificationJWTPayload extends JwtPayload {
   userId: number
@@ -27,7 +28,7 @@ const emailTransporter = nodemailer.createTransport({
     }
 });
 
-export async function createNewUser(userInfo: RegistrationPayload): Promise<CreatedUser> {
+export async function createNewUser(userInfo: RegistrationRequestPayload): Promise<CreatedUser> {
   const client = await db.connect()
 
   const user: InsertUser = {
@@ -82,6 +83,51 @@ export async function createNewUser(userInfo: RegistrationPayload): Promise<Crea
   } finally {
     client.release()
   }
+}
+
+export async function isUserAndDeviceValid(loginInfo: LoginRequestPayload): Promise<number> {
+  const user = await userRepo.findByUsername(loginInfo.username)
+
+  if(!user) {
+    throw new BadRequestError("Invalid Username", {
+      "fieldErrors": {
+        "credentials": "The username or device provided is incorrect"
+      }
+    })
+  }
+
+  if(!user.email_verified) {
+    throw new ForbiddenError("Email not Verified", {
+        "fieldErrors": {
+          "email": "Please verify your email address before logging in."
+        }
+    })
+  }
+
+  const deviceExist = await deviceRepo.existsForUser(loginInfo.device_pbk, user.id)
+
+  if(!deviceExist) {
+    throw new ForbiddenError("Device not linked", {
+      "fieldErrors": {
+        "device": "This device has not been authorized for this account."
+      }
+    })
+  }
+
+  return user.id
+}
+
+export async function createNonceForSigning(userid: number, device_pbk: string): Promise<string> {
+
+  const array = new Uint8Array(32)
+  const randomArray = crypto.getRandomValues(array)
+
+  const nonce = Buffer.from(randomArray).toString("hex")
+
+  const TTL = 180
+  await redisClient.setEx(`auth_nonce:${userid}:${device_pbk}`, TTL, nonce)
+
+  return nonce
 }
 
 export async function createEmailVerificationToken(userId: number, email: string): Promise<string> {
@@ -160,18 +206,3 @@ export async function verifyEmailToken(token: string) {
   }
 }
 
-//export async function getUserWithValidCredentials(email: string, password: string): Promise<User> {
-//  const user = await userRepo.findByEmail(email)
-//
-//  if(!user) {
-//    throw new BadRequestError("Invalid Credentials")
-//  }
-//
-//  const match = await bcrypt.compare(password, user.password_hash)
-//
-//  if(!match) {
-//    throw new BadRequestError("Invalid Credentials")
-//  }
-//
-//  return user
-//}

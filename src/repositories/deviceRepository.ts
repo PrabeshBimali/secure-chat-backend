@@ -1,7 +1,20 @@
 import { PoolClient } from "pg";
+import db from "../config/db.js"
 import { InsertDevice } from "../models/Device.js";
 
 export async function insert(client: PoolClient, device: InsertDevice) {
   const query = `INSERT INTO devices(device_pbk, device_name, browser, os, userid) VALUES($1, $2, $3, $4, $5)`
   await client.query(query, [device.device_pbk, device.device_name, device.browser, device.os, device.userid])
+}
+
+export async function existsForUser(device_pbk: string, userid: number) {
+  console.log(device_pbk, userid)
+  const query = `SELECT 1 FROM devices WHERE device_pbk=$1 AND userid=$2`
+  const rows = await db.query(query, [device_pbk, userid])
+
+  if(rows.rowCount === 0 || rows.rowCount === null) {
+    return false
+  }
+
+  return true
 }

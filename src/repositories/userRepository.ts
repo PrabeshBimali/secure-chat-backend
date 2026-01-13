@@ -20,6 +20,12 @@ export async function findByEmail(email: string): Promise<User> {
   return val.rows[0] as User
 }
 
+export async function findByUsername(username: string): Promise<User> {
+  const query = `SELECT * FROM users WHERE username=$1`
+  const val = await db.query(query, [username])
+  return val.rows[0] as User
+}
+
 export async function updateEmailVerifiedById(id: number, value: boolean) {
   const query = `UPDATE users SET email_verified = $1, updated_at = NOW() WHERE id = $2`
   await db.query(query, [value, id])

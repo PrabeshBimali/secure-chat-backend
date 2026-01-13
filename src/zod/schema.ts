@@ -17,4 +17,11 @@ export const RegistrationRequestSchema = z.strictObject({
   device: DeviceSchema
 })
 
-export type RegistrationPayload = z.infer<typeof RegistrationRequestSchema>
+export type RegistrationRequestPayload = z.infer<typeof RegistrationRequestSchema>
+
+export const LoginRequestSchema = z.strictObject({
+  username: z.string().min(4).max(36).trim().toLowerCase(),
+  device_pbk: z.string().min(50).max(255)
+})
+
+export type LoginRequestPayload = z.infer<typeof LoginRequestSchema>
