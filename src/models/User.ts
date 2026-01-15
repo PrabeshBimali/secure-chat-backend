@@ -3,6 +3,7 @@ export interface User {
   username: string
   email: string
   email_verified: boolean
+  identity_pbk: string
   created_at: Date
   updated_at: Date
 }

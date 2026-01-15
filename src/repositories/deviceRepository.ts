@@ -1,6 +1,6 @@
 import { PoolClient } from "pg";
 import db from "../config/db.js"
-import { InsertDevice } from "../models/Device.js";
+import { InsertDevice, LoginKeys } from "../models/Device.js";
 
 export async function insert(client: PoolClient, device: InsertDevice) {
   const query = `INSERT INTO devices(device_pbk, device_name, browser, os, userid) VALUES($1, $2, $3, $4, $5)`
@@ -8,7 +8,6 @@ export async function insert(client: PoolClient, device: InsertDevice) {
 }
 
 export async function existsForUser(device_pbk: string, userid: number) {
-  console.log(device_pbk, userid)
   const query = `SELECT 1 FROM devices WHERE device_pbk=$1 AND userid=$2`
   const rows = await db.query(query, [device_pbk, userid])
 
@@ -17,4 +16,17 @@ export async function existsForUser(device_pbk: string, userid: number) {
   }
 
   return true
+}
+
+export async function findDeviceAndIdentityKey(userid: number, device_pbk: string): Promise<LoginKeys | null> {
+  const query = `SELECT devices.device_pbk, users.identity_pbk FROM users
+    INNER JOIN devices ON devices.userid=users.id WHERE users.id = $1 and devices.device_pbk = $2`
+    
+  const response = await db.query(query, [userid, device_pbk])
+
+  if(response.rows.length === 0) {
+    return null
+  }
+
+  return response.rows[0] as LoginKeys
 }

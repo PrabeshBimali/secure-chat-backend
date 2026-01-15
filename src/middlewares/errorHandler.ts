@@ -14,8 +14,8 @@ export function errorHandler(error: Error, req: Request, res: Response, next: Ne
     return res.status(error.statusCode).json(response)
   }
   
+  console.error(error)
   const serverError = new ServerError()
   const response = createErrorResponse(serverError.message)
-  console.error(error)
   return res.status(serverError.statusCode).json(response)
 }

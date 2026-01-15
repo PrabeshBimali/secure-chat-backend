@@ -1,8 +1,8 @@
 import { NextFunction, Request, Response, Router } from "express";
-import { requestChallenge, me, registerUser, sendEmailVerificationLink, verifyEmail } from "../controllers/authController.js";
+import { requestChallenge, me, registerUser, sendEmailVerificationLink, verifyEmail, verifyChallenge } from "../controllers/authController.js";
 import requireAuth from "../middlewares/requireAuth.js";
 import { validate } from "../middlewares/validate.js";
-import { LoginRequestSchema, RegistrationRequestSchema } from "../zod/schema.js";
+import { ChallengeRequestSchema, RegistrationRequestSchema } from "../zod/schema.js";
 
 const router = Router()
 
@@ -19,10 +19,13 @@ router.post("/verify-email", async (req: Request, res: Response, next: NextFunct
   await verifyEmail(req, res, next)
 })
 
-router.post("/request-challenge", validate(LoginRequestSchema), async (req: Request, res: Response, next: NextFunction) => {
+router.post("/request-challenge", validate(ChallengeRequestSchema), async (req: Request, res: Response, next: NextFunction) => {
   await requestChallenge(req, res, next)
 })
 
+router.post("/verify-challenge", async (req: Request, res: Response, next: NextFunction) => {
+  await verifyChallenge(req, res, next)
+})
 
 // protected routes
 

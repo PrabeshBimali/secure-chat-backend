@@ -15,3 +15,8 @@ export interface InsertDevice {
   browser: string
   userid: number
 }
+
+export interface LoginKeys {
+  device_pbk: string;
+  identity_pbk: string;
+}

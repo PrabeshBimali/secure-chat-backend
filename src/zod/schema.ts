@@ -6,7 +6,7 @@ const DeviceSchema = z.object({
   name: z.string().min(5).max(255),
   os: z.string().min(2).max(255),
   browser: z.string().min(2).max(255),
-  device_pbk: z.string().min(50).max(255)
+  device_pbk: z.string().min(50).max(255).regex(hexRegex, "Must be valid Hex string.")
 })
 
 export const RegistrationRequestSchema = z.strictObject({
@@ -19,9 +19,18 @@ export const RegistrationRequestSchema = z.strictObject({
 
 export type RegistrationRequestPayload = z.infer<typeof RegistrationRequestSchema>
 
-export const LoginRequestSchema = z.strictObject({
+export const ChallengeRequestSchema = z.strictObject({
   username: z.string().min(4).max(36).trim().toLowerCase(),
   device_pbk: z.string().min(50).max(255)
 })
 
-export type LoginRequestPayload = z.infer<typeof LoginRequestSchema>
+export type ChallengeRequestPayload = z.infer<typeof ChallengeRequestSchema>
+
+export const VerifyChallengeRequestSchema = z.strictObject({
+  userid: z.number(),
+  device_pbk: z.string().min(50).max(255),
+  deviceSignature: z.string().min(50).max(255).regex(hexRegex, "Must be valid Hex string."),
+  identitySignature: z.string().min(50).max(255).regex(hexRegex, "Must be valid Hex string.")
+})
+
+export type VerifyChallengeRequestPayload = z.infer<typeof VerifyChallengeRequestSchema>

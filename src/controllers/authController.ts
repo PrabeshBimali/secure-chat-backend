@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from "express";
-import { createEmailVerificationToken, createNewUser, createNonceForSigning, isUserAndDeviceValid, sendEmailVerification, verifyEmailToken } from "../services/authServices.js";
+import { createEmailVerificationToken, createNewUser, createNonceForSigning, isUserAndDeviceValid, sendEmailVerification, verifyEmailToken, verifyLoginSignatures } from "../services/authServices.js";
 import { createErrorResponse, createSuccessResponse } from "../helpers/responseCreator.js";
-import { BadRequestError, NotFoundError } from "../errors/HTTPErrors.js";
+import { BadRequestError, NotFoundError, UnauthorizedError } from "../errors/HTTPErrors.js";
 import * as userRepo from "../repositories/userRepository.js"
 import { AuthRequest } from "../middlewares/requireAuth.js";
 
@@ -72,10 +72,16 @@ export async function verifyEmail(req: Request, res: Response, next: NextFunctio
 export async function requestChallenge(req: Request, res: Response, next: NextFunction) {
   try {
 
-    const userid = await isUserAndDeviceValid(req.body)
-    const nonce = await createNonceForSigning(userid, req.body.device_pbk)
+    const user = await isUserAndDeviceValid(req.body)
+    const nonce = await createNonceForSigning(user.id, req.body.device_pbk)
 
-    const response = createSuccessResponse("Sign the nonce", {userid, nonce})
+    const responsePayload = {
+      userid: user.id,
+      nonce: nonce,
+      identity_pbk: user.identity_pbk
+    }
+
+    const response = createSuccessResponse("Sign the nonce", responsePayload)
     res.status(200).json(response)
 
 
@@ -86,6 +92,27 @@ export async function requestChallenge(req: Request, res: Response, next: NextFu
     //  sameSite: "strict",
     //  maxAge: 60 * 60 * 1000,
     //})
+  } catch(error) {
+    next(error)
+  }
+}
+
+export async function verifyChallenge(req: Request, res: Response, next: NextFunction) {
+  try {
+    console.log(req.body)
+    const isDeviceAndKeyValid = await verifyLoginSignatures(req.body)
+
+    if(!isDeviceAndKeyValid) {
+      throw new UnauthorizedError("Unauthorized", {
+        details: {
+          "credentials": "The username or device provided is incorrect"
+        }
+      })
+    }
+    console.log("IS Verified: ", isDeviceAndKeyValid)
+
+    res.status(200).json()
+
   } catch(error) {
     next(error)
   }

@@ -1,9 +1,9 @@
 import * as userRepo from "../repositories/userRepository.js"
 import * as deviceRepo from "../repositories/deviceRepository.js"
 import * as tokenRepo from "../repositories/tokenRepository.js"
-import { CreatedUser, InsertUser } from "../models/User.js"
+import { CreatedUser, InsertUser, User } from "../models/User.js"
 import { DatabaseError } from "pg"
-import { BadRequestError, ForbiddenError } from "../errors/HTTPErrors.js"
+import { BadRequestError, ForbiddenError, UnauthorizedError } from "../errors/HTTPErrors.js"
 import { EmailVerificationToken } from "../models/Token.js"
 import jwt, { JwtPayload } from "jsonwebtoken"
 import nodemailer from "nodemailer"
@@ -11,8 +11,10 @@ import authConfig from "../config/authConfig.js"
 import appConfig from "../config/appConfig.js"
 import db from "../config/db.js"
 import { InsertDevice } from "../models/Device.js"
-import { LoginRequestPayload, RegistrationRequestPayload } from "../zod/schema.js"
+import { ChallengeRequestPayload, RegistrationRequestPayload, VerifyChallengeRequestPayload } from "../zod/schema.js"
 import redisClient from "../config/redisClient.js"
+import { bytesToHex } from "@noble/curves/utils.js"
+import { verifyDeviceSignature, verifyIdentitySignature } from "../lib/crypto/verifySignature.js"
 
 interface EmailVerificationJWTPayload extends JwtPayload {
   userId: number
@@ -85,8 +87,8 @@ export async function createNewUser(userInfo: RegistrationRequestPayload): Promi
   }
 }
 
-export async function isUserAndDeviceValid(loginInfo: LoginRequestPayload): Promise<number> {
-  const user = await userRepo.findByUsername(loginInfo.username)
+export async function isUserAndDeviceValid(challengeInfo: ChallengeRequestPayload): Promise<User> {
+  const user = await userRepo.findByUsername(challengeInfo.username)
 
   if(!user) {
     throw new BadRequestError("Invalid Username", {
@@ -104,7 +106,7 @@ export async function isUserAndDeviceValid(loginInfo: LoginRequestPayload): Prom
     })
   }
 
-  const deviceExist = await deviceRepo.existsForUser(loginInfo.device_pbk, user.id)
+  const deviceExist = await deviceRepo.existsForUser(challengeInfo.device_pbk, user.id)
 
   if(!deviceExist) {
     throw new ForbiddenError("Device not linked", {
@@ -114,7 +116,7 @@ export async function isUserAndDeviceValid(loginInfo: LoginRequestPayload): Prom
     })
   }
 
-  return user.id
+  return user
 }
 
 export async function createNonceForSigning(userid: number, device_pbk: string): Promise<string> {
@@ -122,12 +124,43 @@ export async function createNonceForSigning(userid: number, device_pbk: string):
   const array = new Uint8Array(32)
   const randomArray = crypto.getRandomValues(array)
 
-  const nonce = Buffer.from(randomArray).toString("hex")
+  const nonce = bytesToHex(randomArray)
 
   const TTL = 180
   await redisClient.setEx(`auth_nonce:${userid}:${device_pbk}`, TTL, nonce)
 
   return nonce
+}
+
+export async function verifyLoginSignatures(challengeInfo: VerifyChallengeRequestPayload): Promise<boolean> {
+  const savedNonce = await redisClient.getDel(`auth_nonce:${challengeInfo.userid}:${challengeInfo.device_pbk}`)
+  console.log("NONCE: ", savedNonce)
+
+  if(!savedNonce) {
+    throw new BadRequestError("Nonce not found", {
+      fieldErrors: {
+        "credentials": "Request took too long. Please try again!"
+      }
+    })
+  }
+
+  const publicKeys = await deviceRepo.findDeviceAndIdentityKey(challengeInfo.userid, challengeInfo.device_pbk)
+
+  if(publicKeys === null) {
+    throw new UnauthorizedError("Unauthorized", {
+        details: {
+          "credentials": "The username or device provided is incorrect"
+        }
+      }
+    )
+  }
+
+  const isDeviceValid = await verifyDeviceSignature(publicKeys.device_pbk, challengeInfo.deviceSignature, savedNonce)
+  const isUserValid = verifyIdentitySignature(publicKeys.identity_pbk, challengeInfo.identitySignature, savedNonce)
+
+  if(isDeviceValid && isUserValid) return true
+
+  return false
 }
 
 export async function createEmailVerificationToken(userId: number, email: string): Promise<string> {
