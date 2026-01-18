@@ -8,10 +8,26 @@ export async function insert(client: PoolClient, user: InsertUser): Promise<Crea
   return val.rows[0] as CreatedUser
 }
 
-export async function findById(id: number): Promise<User> {
+export async function findById(id: number): Promise<User | null> {
   const query = `SELECT * FROM users WHERE id = $1`
-  const val = await db.query(query, [id])
-  return val.rows[0] as User
+  const response = await db.query(query, [id])
+
+  if(response.rowCount === null || response.rowCount <= 0) {
+    return null
+  }
+
+  return response.rows[0]
+}
+
+export async function findByIdentity_pbk(identity_pbk: string): Promise<User | null> {
+  const query = `SELECT * FROM users WHERE identity_pbk=$1`
+  const response = await db.query(query, [identity_pbk])
+
+  if(response.rowCount === null || response.rowCount <= 0) {
+    return null
+  }
+
+  return response.rows[0]
 }
 
 export async function findByEmail(email: string): Promise<User> {

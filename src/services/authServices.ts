@@ -13,13 +13,18 @@ import db from "../config/db.js"
 import { InsertDevice } from "../models/Device.js"
 import { ChallengeRequestPayload, RegistrationRequestPayload, VerifyChallengeRequestPayload } from "../zod/schema.js"
 import redisClient from "../config/redisClient.js"
-import { bytesToHex } from "@noble/curves/utils.js"
 import { verifyDeviceSignature, verifyIdentitySignature } from "../lib/crypto/verifySignature.js"
+import { generateXBytesNonce } from "../lib/crypto/random.js"
 
 interface EmailVerificationJWTPayload extends JwtPayload {
   userId: number
   tokenId: string
   email: string
+}
+
+interface NoncesForLogin {
+  deviceNonce: string,
+  identityNonce: string
 }
 
 const emailTransporter = nodemailer.createTransport({
@@ -54,7 +59,7 @@ export async function createNewUser(userInfo: RegistrationRequestPayload): Promi
       userid: createdUser.id
     }
 
-    await deviceRepo.insert(client, device)
+    await deviceRepo.insert(device, client)
     await client.query("COMMIT")
 
     return createdUser
@@ -119,48 +124,74 @@ export async function isUserAndDeviceValid(challengeInfo: ChallengeRequestPayloa
   return user
 }
 
-export async function createNonceForSigning(userid: number, device_pbk: string): Promise<string> {
+export async function createNonceForLogin(userid: number, device_pbk: string, identity_pbk: string): Promise<NoncesForLogin> {
 
-  const array = new Uint8Array(32)
-  const randomArray = crypto.getRandomValues(array)
-
-  const nonce = bytesToHex(randomArray)
+  const deviceNonce = generateXBytesNonce(32)
+  const identityNonce = generateXBytesNonce(32)
 
   const TTL = 180
-  await redisClient.setEx(`auth_nonce:${userid}:${device_pbk}`, TTL, nonce)
+  await redisClient.setEx(`auth_nonce:${userid}:${device_pbk}`, TTL, deviceNonce)
+  await redisClient.setEx(`auth_nonce:${userid}:${identity_pbk}`, TTL, identityNonce)
+
+  return {
+    deviceNonce,
+    identityNonce
+  }
+}
+
+export async function createNonceForIdentity(userid: number, identity_pbk: string): Promise<string> {
+  const nonce = generateXBytesNonce(32)
+
+  const TTL = 180
+  await redisClient.setEx(`auth_nonce:${userid}:${identity_pbk}`, TTL, nonce)
 
   return nonce
 }
 
 export async function verifyLoginSignatures(challengeInfo: VerifyChallengeRequestPayload): Promise<boolean> {
-  const savedNonce = await redisClient.getDel(`auth_nonce:${challengeInfo.userid}:${challengeInfo.device_pbk}`)
-  console.log("NONCE: ", savedNonce)
-
-  if(!savedNonce) {
-    throw new BadRequestError("Nonce not found", {
-      fieldErrors: {
-        "credentials": "Request took too long. Please try again!"
-      }
-    })
-  }
-
-  const publicKeys = await deviceRepo.findDeviceAndIdentityKey(challengeInfo.userid, challengeInfo.device_pbk)
+  const publicKeys = await deviceRepo.findDeviceAndIdentityKeys(challengeInfo.userid, challengeInfo.device_pbk)
 
   if(publicKeys === null) {
     throw new UnauthorizedError("Unauthorized", {
-        details: {
+        "fieldErrors": {
           "credentials": "The username or device provided is incorrect"
         }
       }
     )
   }
 
-  const isDeviceValid = await verifyDeviceSignature(publicKeys.device_pbk, challengeInfo.deviceSignature, savedNonce)
-  const isUserValid = verifyIdentitySignature(publicKeys.identity_pbk, challengeInfo.identitySignature, savedNonce)
+  const savedDeviceNonce = await redisClient.getDel(`auth_nonce:${challengeInfo.userid}:${publicKeys.device_pbk}`)
+  const savedIdentityNonce = await redisClient.getDel(`auth_nonce:${challengeInfo.userid}:${publicKeys.identity_pbk}`)
+
+  if(!savedDeviceNonce || !savedIdentityNonce) {
+    throw new BadRequestError("Nonce not found", {
+      "fieldErrors": {
+        "credentials": "Request took too long. Please try again!"
+      }
+    })
+  }
+
+  const isDeviceValid = await verifyDeviceSignature(publicKeys.device_pbk, challengeInfo.deviceSignature, savedDeviceNonce)
+  const isUserValid = verifyIdentitySignature(publicKeys.identity_pbk, challengeInfo.identitySignature, savedIdentityNonce)
 
   if(isDeviceValid && isUserValid) return true
 
   return false
+}
+
+export async function verifyIdentitySignatureForRecovery(userid: number, identity_pbk: string, signature: string): Promise<boolean> {
+  const savedNonce = await redisClient.getDel(`auth_nonce:${userid}:${identity_pbk}`)
+  
+  if(!savedNonce) {
+    throw new BadRequestError("Nonce not found", {
+      "fieldErrors": {
+        "credentials": "Request took too long. Please try again!"
+      }
+    })
+  }
+
+  const isValid = verifyIdentitySignature(identity_pbk, signature, savedNonce)
+  return isValid
 }
 
 export async function createEmailVerificationToken(userId: number, email: string): Promise<string> {

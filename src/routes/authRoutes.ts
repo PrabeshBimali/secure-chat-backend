@@ -1,8 +1,8 @@
 import { NextFunction, Request, Response, Router } from "express";
-import { requestChallenge, me, registerUser, sendEmailVerificationLink, verifyEmail, verifyChallenge } from "../controllers/authController.js";
+import { requestChallenge, me, registerUser, sendEmailVerificationLink, verifyEmail, verifyChallenge, requestChallengeForRecovery, verifyChallegeForRecovery } from "../controllers/authController.js";
 import requireAuth from "../middlewares/requireAuth.js";
 import { validate } from "../middlewares/validate.js";
-import { ChallengeRequestSchema, RegistrationRequestSchema } from "../zod/schema.js";
+import { ChallengeRequestSchema, RecoveryChallengeRequestSchema, RegistrationRequestSchema, VerifyChallengeRequestSchema, VerifyRecoveryChallengeRequestSchema } from "../zod/schema.js";
 
 const router = Router()
 
@@ -23,8 +23,16 @@ router.post("/request-challenge", validate(ChallengeRequestSchema), async (req: 
   await requestChallenge(req, res, next)
 })
 
-router.post("/verify-challenge", async (req: Request, res: Response, next: NextFunction) => {
+router.post("/verify-challenge", validate(VerifyChallengeRequestSchema), async (req: Request, res: Response, next: NextFunction) => {
   await verifyChallenge(req, res, next)
+})
+
+router.post("/recovery/request", validate(RecoveryChallengeRequestSchema), async (req: Request, res: Response, next: NextFunction) => {
+  await requestChallengeForRecovery(req, res, next)
+})
+
+router.post("/recovery/verify", validate(VerifyRecoveryChallengeRequestSchema), async (req: Request, res: Response, next: NextFunction) => {
+  await verifyChallegeForRecovery(req, res, next)
 })
 
 // protected routes

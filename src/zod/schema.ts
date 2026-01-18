@@ -34,3 +34,17 @@ export const VerifyChallengeRequestSchema = z.strictObject({
 })
 
 export type VerifyChallengeRequestPayload = z.infer<typeof VerifyChallengeRequestSchema>
+
+export const RecoveryChallengeRequestSchema = z.strictObject({
+  identity_pbk: z.string().length(64).regex(hexRegex, "Must be valid Hex string.")
+})
+
+export type RecoveryChallengeRequestPayload = z.infer<typeof RecoveryChallengeRequestSchema>
+
+export const VerifyRecoveryChallengeRequestSchema = z.strictObject({
+  userid: z.number(),
+  signature: z.string().min(50).max(255).regex(hexRegex, "Must be valid Hex string."),
+  device: DeviceSchema
+})
+
+export type VerifyRecoveryChallengeRequestPayload = z.infer<typeof VerifyRecoveryChallengeRequestSchema>
