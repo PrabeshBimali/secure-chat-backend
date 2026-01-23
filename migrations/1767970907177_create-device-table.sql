@@ -18,4 +18,4 @@ ALTER TABLE IF EXISTS public.devices
     ON DELETE CASCADE;
 
 -- Down Migration
-DROP TABLE devices;
+DROP TABLE IF EXISTS devices;

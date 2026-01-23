@@ -42,4 +42,5 @@ ALTER TABLE IF EXISTS public.messages
 CREATE INDEX idx_messages_room_timeline ON public.messages (roomid, created_at DESC);
 
 -- Down Migration
-DROP TABLE public.messages
+DROP TABLE IF EXISTS public.messages;
+DROP TYPE IF EXISTS message_status;

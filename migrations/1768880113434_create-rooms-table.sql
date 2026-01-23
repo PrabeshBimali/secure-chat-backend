@@ -8,4 +8,4 @@ CREATE TABLE IF NOT EXISTS public.rooms
 );
 
 -- Down Migration
-DROP TABLE public.rooms
+DROP TABLE IF EXISTS public.rooms;
