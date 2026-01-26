@@ -48,3 +48,10 @@ export const VerifyRecoveryChallengeRequestSchema = z.strictObject({
 })
 
 export type VerifyRecoveryChallengeRequestPayload = z.infer<typeof VerifyRecoveryChallengeRequestSchema>
+
+export const SearchUsersRequestSchema = z.strictObject({
+  userid: z.number(),
+  usernamePattern: z.string().min(3).max(36).trim().toLowerCase()
+})
+
+export type SearchUsersRequestPayload = z.infer<typeof SearchUsersRequestSchema>

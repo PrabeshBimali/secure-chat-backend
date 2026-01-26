@@ -2,6 +2,13 @@ import { PoolClient } from "pg";
 import db from "../config/db.js"
 import { CreatedUser, InsertUser, User } from "../models/User.js";
 
+interface SearchUsersResult {
+  id: number,
+  username: string,
+  friendship_status: string,
+  requester_id: number
+}
+
 export async function insert(client: PoolClient, user: InsertUser): Promise<CreatedUser> {
   const query = `INSERT INTO users(username, email, identity_pbk, encryption_pbk) VALUES($1, $2, $3, $4) RETURNING id, username, email`
   const val = await client.query(query, [user.username, user.email, user.identity_pbk, user.encryption_pbk])
@@ -47,3 +54,17 @@ export async function updateEmailVerifiedById(id: number, value: boolean) {
   await db.query(query, [value, id])
 }
 
+export async function searchUsersWithFriendshipStatus(id: number, pattern: string): Promise<Array<SearchUsersResult>> {
+  const query = `SELECT 
+                  u.id, 
+                  u.username, 
+                  f.status AS friendship_status,
+                  f.requester_id
+                FROM users u
+                LEFT JOIN friends f ON 
+                    (f.user_1_id = LEAST($1, u.id) AND f.user_2_id = GREATEST($1, u.id))
+                WHERE (u.username ILIKE $2 OR u.email ILIKE $2) AND u.id != $1 
+                LIMIT 7;`
+  const response = await db.query(query, [id, pattern])
+  return response.rows
+} 
