@@ -1,14 +1,18 @@
 import express from "express"
 import { createServer, Server } from "http"
 import cookieParser from "cookie-parser"
-import authRouter from "./routes/authRoutes.js"
 import { errorHandler } from "./middlewares/errorHandler.js"
 import cors from "cors"
 import appConfig from "./config/appConfig.js"
 
+// router imports
+import authRouter from "./routes/authRoutes.js"
+import usersRouter from  "./routes/usersRoutes.js"
+import chatRouter from "./routes/chatRoutes.js"
+
 const corsOptions = {
-      origin: appConfig.frontendUrl, // Allow only a specific origin
-      credentials: true,            // Enable cookies and credentials
+      origin: appConfig.frontendUrl,
+      credentials: true,
 };
 
 const app = express()
@@ -18,6 +22,8 @@ app.use(express.json())
 app.use(cookieParser())
 
 app.use("/auth", authRouter)
+app.use("/users", usersRouter)
+app.use("/chat", chatRouter)
 
 app.use(errorHandler)
 

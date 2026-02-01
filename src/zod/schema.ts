@@ -55,3 +55,7 @@ export const SearchUsersRequestSchema = z.strictObject({
 })
 
 export type SearchUsersRequestPayload = z.infer<typeof SearchUsersRequestSchema>
+
+export const UserIdParamsSchema = z.strictObject({
+  userid: z.coerce.number().int().positive()
+})

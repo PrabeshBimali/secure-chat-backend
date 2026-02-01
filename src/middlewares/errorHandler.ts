@@ -6,6 +6,7 @@ import { createErrorResponse } from "../helpers/responseCreator.js"
 export function errorHandler(error: Error, req: Request, res: Response, next: NextFunction) {
 
 
+  console.error(error)
   if(error instanceof ForbiddenError ||
     error instanceof NotFoundError ||
     error instanceof UnauthorizedError || 
@@ -14,7 +15,6 @@ export function errorHandler(error: Error, req: Request, res: Response, next: Ne
     return res.status(error.statusCode).json(response)
   }
   
-  console.error(error)
   const serverError = new ServerError()
   const response = createErrorResponse(serverError.message)
   return res.status(serverError.statusCode).json(response)
