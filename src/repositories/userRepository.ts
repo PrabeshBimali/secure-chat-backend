@@ -2,21 +2,13 @@ import { PoolClient } from "pg";
 import db from "../config/db.js"
 import { CreatedUser, InsertUser, User } from "../models/User.js";
 
-export interface SearchUsersResult {
-  id: number,
-  username: string,
-  friendship_status: string,
-  requester_id: number,
-  blocked_by: number
-}
-
 export interface RelatedUser {
   id: number,
-  username: string,
-  friendship_status: string,
-  requester_id: number,
-  blocked_by: number,
-  roomid: number
+  username: string
+  friendship_status: string
+  requester_id: number
+  blocked_by: number
+  roomid: string
 }
 
 export async function insert(client: PoolClient, user: InsertUser): Promise<CreatedUser> {
@@ -64,7 +56,7 @@ export async function updateEmailVerifiedById(id: number, value: boolean) {
   await db.query(query, [value, id])
 }
 
-export async function searchWithRelationship(id: number, pattern: string): Promise<Array<SearchUsersResult>> {
+export async function searchWithRelationship(id: number, pattern: string): Promise<Array<RelatedUser>> {
   const newPattern = `${pattern}%`
   const query = 
   `SELECT 
@@ -95,7 +87,7 @@ export async function findWithRelationship(myId: number, targetId: number): Prom
     LEFT JOIN friends f ON
       (f.user_1_id = $1 AND f.user_2_id = $2) OR
       (f.user_1_id = $2 AND f.user_2_id = $1)
-    WHERE u.id = $1
+    WHERE u.id = $2;
   `
   const response = await db.query(query, [myId, targetId])
   return response.rows[0]
