@@ -1,4 +1,4 @@
-import { RelatedUser } from "../repositories/userRepository.js";
+import { SearchUser } from "../repositories/userRepository.js";
 
 export enum UI_RELATIONSHIP_STATUS {
   NONE = 'NONE',
@@ -9,7 +9,7 @@ export enum UI_RELATIONSHIP_STATUS {
   THEY_BLOCKED = 'THEY_BLOCKED',
 }
 
-export function generateFriendshipStatusForUI(searchedUser: RelatedUser, currentUserId: number): UI_RELATIONSHIP_STATUS {
+export function generateFriendshipStatusForUI(searchedUser: SearchUser, currentUserId: number): UI_RELATIONSHIP_STATUS {
     const { friendship_status, requester_id, blocked_by } = searchedUser;
 
     if (!friendship_status) return UI_RELATIONSHIP_STATUS.NONE;

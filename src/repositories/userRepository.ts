@@ -2,13 +2,19 @@ import { PoolClient } from "pg";
 import db from "../config/db.js"
 import { CreatedUser, InsertUser, User } from "../models/User.js";
 
-export interface RelatedUser {
-  id: number,
+export interface BaseUser {
+  id: number
   username: string
+}
+export interface SearchUser extends BaseUser {
   friendship_status: string
   requester_id: number
-  blocked_by: number
-  roomid: string
+  blocked_by: number | null
+}
+
+export interface ChatPartner extends SearchUser {
+  encryption_pbk: string
+  roomid: string | null
 }
 
 export async function insert(client: PoolClient, user: InsertUser): Promise<CreatedUser> {
@@ -56,7 +62,7 @@ export async function updateEmailVerifiedById(id: number, value: boolean) {
   await db.query(query, [value, id])
 }
 
-export async function searchWithRelationship(id: number, pattern: string): Promise<Array<RelatedUser>> {
+export async function searchWithRelationship(id: number, pattern: string): Promise<Array<SearchUser>> {
   const newPattern = `${pattern}%`
   const query = 
   `SELECT 
@@ -74,11 +80,12 @@ export async function searchWithRelationship(id: number, pattern: string): Promi
   return response.rows
 } 
 
-export async function findWithRelationship(myId: number, targetId: number): Promise<RelatedUser> {
+export async function findWithRelationship(myId: number, targetId: number): Promise<ChatPartner> {
   const query = `
     SELECT
       u.id,
       u.username,
+      u.encryption_pbk,
       f.status AS friendship_status,
       f.requester_id,
       f.blocked_by,

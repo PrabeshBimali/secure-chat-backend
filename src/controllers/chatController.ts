@@ -14,11 +14,16 @@ export async function getChatContext(req: Request, res: Response, next: NextFunc
     const targetId = result.userid
 
     const targetUser = await userRepo.findWithRelationship(myId, targetId)
-    const recentMessages = await messageRepo.findRecentByRoomid(targetUser.roomid)
+    let recentMessages: Array<messageRepo.MessageForClient> = []
+
+    if(targetUser.roomid !== null) {
+      recentMessages = await messageRepo.findRecentByRoomid(targetUser.roomid)
+    }
 
     const responsePayload = {
       id: targetUser.id,
       username: targetUser.username,
+      publicKey: targetUser.encryption_pbk,
       friendshipStatus: generateFriendshipStatusForUI(targetUser, myId),
       roomid: targetUser.roomid,
       messages: recentMessages.reverse()

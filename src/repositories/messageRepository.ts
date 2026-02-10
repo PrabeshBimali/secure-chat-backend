@@ -1,6 +1,6 @@
 import db from "../config/db.js"
 
-interface MessageForClient {
+export interface MessageForClient {
   id: string
   ciphertext: string
   iv: string
