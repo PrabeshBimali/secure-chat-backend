@@ -2,7 +2,7 @@ import { Socket } from "socket.io"
 import jwt from "jsonwebtoken"
 import authConfig from "../config/authConfig.js"
 import cookie from "cookie"
-import { BadRequestError, ServerError, UnauthorizedError } from "../errors/HTTPErrors.js";
+import { ServerError, UnauthorizedError } from "../errors/HTTPErrors.js";
 
 export interface CustomSocket extends Socket {
   userId?: number
@@ -17,7 +17,7 @@ export function socketAuth(socket: CustomSocket, next: (err?: Error) => void) {
     }
 
     const cookies = cookie.parse(rawCookie)
-    const token = cookies.jwt
+    const token = cookies.token
 
     if (!token) return next(new UnauthorizedError("Authentication error"))
 

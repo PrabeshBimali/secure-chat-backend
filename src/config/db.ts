@@ -16,7 +16,6 @@ const pool: Pool = new Pool({
   connectionString
 })
 
-// Handle potential errors on idle clients
 pool.on('error', (err, client) => {
     console.error('Unexpected error on idle client', err);
     process.exit(-1); // Exit the process if a critical error occurs

@@ -1,6 +1,6 @@
 import express from "express"
 import { createServer } from "http"
-import { Server } from "socket.io"
+import { Server, Socket } from "socket.io"
 import cookieParser from "cookie-parser"
 import { errorHandler } from "./middlewares/errorHandler.js"
 import cors from "cors"
@@ -10,7 +10,8 @@ import appConfig from "./config/appConfig.js"
 import authRouter from "./routes/authRoutes.js"
 import usersRouter from  "./routes/usersRoutes.js"
 import chatRouter from "./routes/chatRoutes.js"
-import { socketAuth } from "./middlewares/socketAuth.js"
+import { CustomSocket, socketAuth } from "./middlewares/socketAuth.js"
+import { handleConnection, handleDisconnect } from "./controllers/socketController.js"
 
 const corsOptions = {
       origin: appConfig.frontendUrl,
@@ -39,8 +40,10 @@ app.use("/chat", chatRouter)
 app.use(errorHandler)
 
 io.use(socketAuth)
-io.on("connection", () => {
-  console.log("A user connected to socket server")
+io.on("connection", (socket: CustomSocket) => {
+  handleConnection(socket)
+
+  socket.on("disconnect", handleDisconnect(socket))
 })
 
 
