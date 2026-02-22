@@ -11,7 +11,7 @@ import authRouter from "./routes/authRoutes.js"
 import usersRouter from  "./routes/usersRoutes.js"
 import chatRouter from "./routes/chatRoutes.js"
 import { CustomSocket, socketAuth } from "./middlewares/socketAuth.js"
-import { handleConnection, handleDisconnect } from "./controllers/socketController.js"
+import { handleConnection, handleDisconnect, handleMessageSend } from "./controllers/socketController.js"
 
 const corsOptions = {
       origin: appConfig.frontendUrl,
@@ -42,7 +42,7 @@ app.use(errorHandler)
 io.use(socketAuth)
 io.on("connection", (socket: CustomSocket) => {
   handleConnection(socket)
-
+  socket.on("send_message", handleMessageSend(socket))
   socket.on("disconnect", handleDisconnect(socket))
 })
 

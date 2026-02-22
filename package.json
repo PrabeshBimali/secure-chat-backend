@@ -16,7 +16,6 @@
   "author": "Prabesh Bimali",
   "license": "ISC",
   "devDependencies": {
-    "@types/bcrypt": "^6.0.0",
     "@types/cookie-parser": "^1.4.9",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",

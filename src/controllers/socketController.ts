@@ -15,6 +15,12 @@ export async function handleConnection(socket: CustomSocket) {
   }
 }
 
+export function handleMessageSend(socket: CustomSocket) {
+  return (data: any) => {
+    console.log(data)
+  }
+}
+
 export function handleDisconnect(socket: CustomSocket) {
   return async () => {
     try{

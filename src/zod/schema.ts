@@ -59,3 +59,13 @@ export type SearchUsersRequestPayload = z.infer<typeof SearchUsersRequestSchema>
 export const UserIdParamsSchema = z.strictObject({
   userid: z.coerce.number().int().positive()
 })
+
+export const SendMessageRequestSchema = z.strictObject({
+  partnerId: z.number(),
+  // used AI for calculating min and max len for cipherText
+  // we will see how correct it i
+  ciphertext: z.string().min(24).max(8024),
+  iv: z.string().length(24).regex(hexRegex, "Must be valid Hex string")
+})
+
+export type SendMessageRequestPayload = z.infer<typeof SendMessageRequestSchema>

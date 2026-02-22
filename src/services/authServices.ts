@@ -49,7 +49,6 @@ export async function createNewUser(userInfo: RegistrationRequestPayload): Promi
 
     await client.query("BEGIN")
     const createdUser = await userRepo.insert(client, user)
-    console.log(createdUser)
 
     const device: InsertDevice = {
       device_name: userInfo.device.name,

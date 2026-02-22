@@ -2,9 +2,10 @@ import { NextFunction, Request, Response } from "express"
 import * as userRepo from "../repositories/userRepository.js"
 import * as messageRepo from "../repositories/messageRepository.js"
 import { assertAuth } from "../lib/utils/authUtils.js"
-import { UserIdParamsSchema } from "../zod/schema.js"
+import { SendMessageRequestPayload, UserIdParamsSchema } from "../zod/schema.js"
 import { generateFriendshipStatusForUI } from "../services/userServices.js"
 import { createSuccessResponse } from "../helpers/responseCreator.js"
+import { addMessage } from "../services/chatServices.js"
 
 export async function getChatContext(req: Request, res: Response, next: NextFunction) {
   try {
@@ -14,6 +15,12 @@ export async function getChatContext(req: Request, res: Response, next: NextFunc
     const targetId = result.userid
 
     const targetUser = await userRepo.findWithRelationship(myId, targetId)
+
+    // TODO improve this error
+    if(targetUser === null) {
+      throw new Error()
+    }
+
     let recentMessages: Array<messageRepo.MessageForClient> = []
 
     if(targetUser.roomid !== null) {
@@ -32,6 +39,18 @@ export async function getChatContext(req: Request, res: Response, next: NextFunc
     const response = createSuccessResponse("Chat Context Retreived!", responsePayload)
 
     res.status(200).json(response)
+
+  } catch(error) {
+    next(error)
+  }
+}
+
+export async function sendNewMessage(req: Request, res: Response, next: NextFunction) {
+  try {
+    const myId = assertAuth(req)
+    const payload = req.body as SendMessageRequestPayload
+    await addMessage(myId, payload.partnerId, payload.ciphertext, payload.iv)
+    res.status(200).json("Great!")
 
   } catch(error) {
     next(error)

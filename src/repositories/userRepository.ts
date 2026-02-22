@@ -80,7 +80,7 @@ export async function searchWithRelationship(id: number, pattern: string): Promi
   return response.rows
 } 
 
-export async function findWithRelationship(myId: number, targetId: number): Promise<ChatPartner> {
+export async function findWithRelationship(myId: number, targetId: number): Promise<ChatPartner | null>{
   const query = `
     SELECT
       u.id,
@@ -97,5 +97,10 @@ export async function findWithRelationship(myId: number, targetId: number): Prom
     WHERE u.id = $2;
   `
   const response = await db.query(query, [myId, targetId])
+
+  if(response.rowCount === null || response.rowCount <= 0) {
+    return null
+  }
+
   return response.rows[0]
 }
