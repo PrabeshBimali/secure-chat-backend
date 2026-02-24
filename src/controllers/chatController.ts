@@ -49,8 +49,9 @@ export async function sendNewMessage(req: Request, res: Response, next: NextFunc
   try {
     const myId = assertAuth(req)
     const payload = req.body as SendMessageRequestPayload
-    await addMessage(myId, payload.partnerId, payload.ciphertext, payload.iv)
-    res.status(200).json("Great!")
+    const messageStatus = await addMessage(myId, payload.partnerId, payload.ciphertext, payload.iv)
+    const response = createSuccessResponse("Message sent!", {...messageStatus, partnerId: payload.partnerId})
+    res.status(200).json(response)
 
   } catch(error) {
     next(error)

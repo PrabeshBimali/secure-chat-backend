@@ -5,7 +5,7 @@ import * as messageRepo from "../repositories/messageRepository.js"
 import db from "../config/db.js"
 import { BadRequestError, NotFoundError } from "../errors/HTTPErrors.js"
 
-export async function addMessage(myId: number, targetId: number, cipherText: string, iv: string) {
+export async function addMessage(myId: number, targetId: number, cipherText: string, iv: string): Promise<{messageId: string, status: string}> {
   const client = await db.connect()
 
   try {
@@ -25,7 +25,7 @@ export async function addMessage(myId: number, targetId: number, cipherText: str
       // TODO: Change status based on if user is online
       const messageId = await messageRepo.insert(cipherText, iv, "sent", myId, roomid, client)
       await client.query("COMMIT")
-      return
+      return {messageId, status: "sent"}
     }
 
     // if user is blocked
@@ -56,7 +56,7 @@ export async function addMessage(myId: number, targetId: number, cipherText: str
       })
     }
 
-    await client.query("BEGIN")
+    await client.query("BEGI")
     // if request is pending but person who messaged receiver send update friendship status
     if(relationship.friendship_status === "pending" && relationship.requester_id === targetId) {
       await friendsRepo.updateFriendshipStatus(Math.min(myId, targetId), Math.max(myId, targetId), "friends", client)
@@ -65,6 +65,8 @@ export async function addMessage(myId: number, targetId: number, cipherText: str
     // TODO: if target user is online statuss shouldd be delivered
     const messageId = await messageRepo.insert(cipherText, iv, "sent", myId, relationship.roomid, client)
     await client.query("COMMIT")
+
+    return {messageId, status: "sent"}
   } catch(error) {
     await client.query("ROLLBACK")
     throw error
