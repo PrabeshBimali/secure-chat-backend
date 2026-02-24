@@ -9,15 +9,9 @@ export async function handleConnection(socket: CustomSocket) {
 
     // REMINDER keep 2 minutes for now
     // change to large number later
-    await redisClient.EXPIRE(key, 120)
+    await redisClient.EXPIRE(key, 300)
   } catch(e) {
     console.log(e)
-  }
-}
-
-export function handleMessageSend(socket: CustomSocket) {
-  return (data: any) => {
-    console.log(data)
   }
 }
 

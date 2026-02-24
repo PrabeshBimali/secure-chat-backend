@@ -5,7 +5,7 @@ import * as messageRepo from "../repositories/messageRepository.js"
 import db from "../config/db.js"
 import { BadRequestError, NotFoundError } from "../errors/HTTPErrors.js"
 
-export async function addMessage(myId: number, targetId: number, cipherText: string, iv: string): Promise<{messageId: string, status: string}> {
+export async function addMessage(myId: number, targetId: number, cipherText: string, iv: string, isPartnerOnline: boolean): Promise<messageRepo.MessageForClient> {
   const client = await db.connect()
 
   try {
@@ -22,10 +22,10 @@ export async function addMessage(myId: number, targetId: number, cipherText: str
       await roomRepo.insertMember(roomid, myId, client)
       await roomRepo.insertMember(roomid, targetId, client)
       await friendsRepo.insert(Math.min(myId, targetId), Math.max(myId, targetId), myId, roomid, client)
-      // TODO: Change status based on if user is online
-      const messageId = await messageRepo.insert(cipherText, iv, "sent", myId, roomid, client)
+      const status = isPartnerOnline ? "delivered" : "sent"
+      const message = await messageRepo.insert(cipherText, iv, status, myId, roomid, client)
       await client.query("COMMIT")
-      return {messageId, status: "sent"}
+      return message
     }
 
     // if user is blocked
@@ -47,7 +47,7 @@ export async function addMessage(myId: number, targetId: number, cipherText: str
       }
     }
 
-    // if request is still pending throw error
+    // if friend request is still pending throw error
     if(relationship.friendship_status === "pending" &&  relationship.requester_id === myId) {
       throw new BadRequestError("Cannot send the message", {
         "fieldErrors": {
@@ -56,17 +56,17 @@ export async function addMessage(myId: number, targetId: number, cipherText: str
       })
     }
 
-    await client.query("BEGI")
+    await client.query("BEGIN")
     // if request is pending but person who messaged receiver send update friendship status
     if(relationship.friendship_status === "pending" && relationship.requester_id === targetId) {
       await friendsRepo.updateFriendshipStatus(Math.min(myId, targetId), Math.max(myId, targetId), "friends", client)
     }
 
-    // TODO: if target user is online statuss shouldd be delivered
-    const messageId = await messageRepo.insert(cipherText, iv, "sent", myId, relationship.roomid, client)
+    const status = isPartnerOnline ? "delivered" : "sent"
+    const message = await messageRepo.insert(cipherText, iv, status, myId, relationship.roomid, client)
     await client.query("COMMIT")
 
-    return {messageId, status: "sent"}
+    return message
   } catch(error) {
     await client.query("ROLLBACK")
     throw error

@@ -6,6 +6,8 @@ import { SendMessageRequestPayload, UserIdParamsSchema } from "../zod/schema.js"
 import { generateFriendshipStatusForUI } from "../services/userServices.js"
 import { createSuccessResponse } from "../helpers/responseCreator.js"
 import { addMessage } from "../services/chatServices.js"
+import socket from "../socket.js"
+import redisClient from "../config/redisClient.js"
 
 export async function getChatContext(req: Request, res: Response, next: NextFunction) {
   try {
@@ -49,9 +51,25 @@ export async function sendNewMessage(req: Request, res: Response, next: NextFunc
   try {
     const myId = assertAuth(req)
     const payload = req.body as SendMessageRequestPayload
-    const messageStatus = await addMessage(myId, payload.partnerId, payload.ciphertext, payload.iv)
-    const response = createSuccessResponse("Message sent!", {...messageStatus, partnerId: payload.partnerId})
-    res.status(200).json(response)
+    const idStr = String(payload.partnerId)
+    const partnerSocketIds = await redisClient.SMEMBERS(`user:online:${idStr}`)
+
+    const isPartnerOnline = partnerSocketIds.length > 0
+    const message = await addMessage(myId, payload.partnerId, payload.ciphertext, payload.iv, isPartnerOnline)
+
+    // send message to chat partner
+    if(isPartnerOnline) {
+      const io = socket.getServer()
+      const socketResponse = createSuccessResponse("Message sent!", message)
+      partnerSocketIds.forEach((socketid) => {
+        io.to(socketid).emit("message_received", socketResponse)
+      })
+    }
+
+    const httpResponseData = { messageId: message.id, partnerId: payload.partnerId, status: message.status }
+    const httpResponse = createSuccessResponse("Message sent!", httpResponseData)
+
+    res.status(200).json(httpResponse)
 
   } catch(error) {
     next(error)
