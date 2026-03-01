@@ -10,6 +10,7 @@ import socket from "./socket.js"
 import authRouter from "./routes/authRoutes.js"
 import usersRouter from  "./routes/usersRoutes.js"
 import chatRouter from "./routes/chatRoutes.js"
+import roomRouter from "./routes/roomRoutes.js"
 import { CustomSocket, socketAuth } from "./middlewares/socketAuth.js"
 import { handleConnection, handleDisconnect } from "./controllers/socketController.js"
 
@@ -31,6 +32,7 @@ app.use(cookieParser())
 app.use("/auth", authRouter)
 app.use("/users", usersRouter)
 app.use("/chat", chatRouter)
+app.use("/rooms", roomRouter)
 
 app.use(errorHandler)
 

@@ -7,7 +7,7 @@ export async function handleConnection(socket: CustomSocket) {
     const key = `user:online:${userId}`
     await redisClient.SADD(key, socket.id)
 
-    // REMINDER keep 2 minutes for now
+    // REMINDER: keep 5 minutes for now
     // change to large number later
     await redisClient.EXPIRE(key, 300)
   } catch(e) {

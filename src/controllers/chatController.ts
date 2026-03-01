@@ -18,7 +18,7 @@ export async function getChatContext(req: Request, res: Response, next: NextFunc
 
     const targetUser = await userRepo.findWithRelationship(myId, targetId)
 
-    // TODO improve this error
+    // TODO: improve this error
     if(targetUser === null) {
       throw new Error()
     }
@@ -55,6 +55,8 @@ export async function sendNewMessage(req: Request, res: Response, next: NextFunc
     const partnerSocketIds = await redisClient.SMEMBERS(`user:online:${idStr}`)
 
     const isPartnerOnline = partnerSocketIds.length > 0
+
+    // TODO: we have to send username as well for showing notification
     const message = await addMessage(myId, payload.partnerId, payload.ciphertext, payload.iv, isPartnerOnline)
 
     // send message to chat partner
