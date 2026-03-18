@@ -26,3 +26,15 @@ export function validateRequestParams(schema: z.ZodObject<any, any>) {
     next()
   }
 }
+
+export function validateQueryString(schema: z.ZodObject<any, any>) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const result = schema.safeParse(req.query)
+
+    if(!result.success) {
+      throw new BadRequestError("Bad Request", z.flattenError(result.error))
+    }
+
+    next()
+  }
+}

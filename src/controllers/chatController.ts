@@ -2,7 +2,7 @@ import { NextFunction, Request, Response } from "express"
 import * as userRepo from "../repositories/userRepository.js"
 import * as messageRepo from "../repositories/messageRepository.js"
 import { assertAuth } from "../lib/utils/authUtils.js"
-import { SendMessageRequestPayload, UserIdParamsSchema } from "../zod/schema.js"
+import { HistoryQueryStringSchema, SendMessageRequestPayload, UserIdParamsSchema } from "../zod/schema.js"
 import { generateFriendshipStatusForUI } from "../services/userServices.js"
 import { createSuccessResponse } from "../helpers/responseCreator.js"
 import { addMessage } from "../services/chatServices.js"
@@ -28,6 +28,8 @@ export async function getChatContext(req: Request, res: Response, next: NextFunc
     if(targetUser.roomid !== null) {
       recentMessages = await messageRepo.findRecentByRoomid(targetUser.roomid)
     }
+    
+    const hasMore = recentMessages.length < 30 ? false : true
 
     const responsePayload = {
       id: targetUser.id,
@@ -35,10 +37,49 @@ export async function getChatContext(req: Request, res: Response, next: NextFunc
       publicKey: targetUser.encryption_pbk,
       friendshipStatus: generateFriendshipStatusForUI(targetUser, myId),
       roomid: targetUser.roomid,
+      hasMoreHistory: hasMore,
       messages: recentMessages.reverse()
     }
 
     const response = createSuccessResponse("Chat Context Retreived!", responsePayload)
+
+    res.status(200).json(response)
+
+  } catch(error) {
+    next(error)
+  }
+}
+
+export async function getChatHistory(req: Request, res: Response, next: NextFunction) {
+  try {
+
+    const myId = assertAuth(req)
+    const result = HistoryQueryStringSchema.parse(req.query)
+    const targetId = result.userid
+    const beforeDate = result.before
+    
+    const targetUser = await userRepo.findWithRelationship(myId, targetId)
+
+    // TODO: improve this error
+    if(targetUser === null) {
+      throw new Error()
+    }
+
+    let messagesHistory: Array<messageRepo.MessageForClient> = []
+
+    if(targetUser.roomid !== null) {
+      messagesHistory = await messageRepo.findBefore(targetUser.roomid, beforeDate)
+    }
+
+    const hasMore = messagesHistory.length < 20 ? false : true
+
+    const responsePayload = {
+      id: targetUser.id,
+      hasMoreHistory: hasMore,
+      messages: messagesHistory.reverse()
+    }
+
+    const response = createSuccessResponse("Hitory messages retrieved", responsePayload)
 
     res.status(200).json(response)
 

@@ -12,7 +12,7 @@ export interface MessageForClient {
   replyId: string | null
 }
 
-export async function findRecentByRoomid(roomid: string, limit: number = 50): Promise<Array<MessageForClient>> {
+export async function findRecentByRoomid(roomid: string, limit: number = 30): Promise<Array<MessageForClient>> {
   const query = `
     SELECT 
     id, ciphertext, iv, 
@@ -26,6 +26,24 @@ export async function findRecentByRoomid(roomid: string, limit: number = 50): Pr
     ORDER BY created_at DESC 
     LIMIT $2`
   const response = await db.query(query, [roomid, limit])
+  return response.rows as Array<MessageForClient>
+}
+
+export async function findBefore(roomid: string, date: string, limit: number = 20): Promise<Array<MessageForClient>> {
+  const query = `
+    SELECT id, ciphertext, iv, 
+    is_edited AS "isEdited",
+    status,
+    created_at AS "createdAt",
+    senderid AS "senderId",
+    replyid AS "replyId"
+    FROM messages 
+    WHERE roomid = $1
+	  AND created_at < $2
+    ORDER BY created_at DESC 
+    LIMIT $3`
+  
+  const response = await db.query(query, [roomid, date, limit])
   return response.rows as Array<MessageForClient>
 }
 

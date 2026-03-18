@@ -60,10 +60,15 @@ export const UserIdParamsSchema = z.strictObject({
   userid: z.coerce.number().int().positive()
 })
 
+export const HistoryQueryStringSchema = z.strictObject({
+  userid: z.coerce.number().int().positive(),
+  before: z.iso.datetime()
+})
+
 export const SendMessageRequestSchema = z.strictObject({
   partnerId: z.number(),
   // used AI for calculating min and max len for cipherText
-  // we will see how correct it i
+  // we will see how correct it is
   ciphertext: z.string().min(24).max(8024),
   iv: z.string().length(24).regex(hexRegex, "Must be valid Hex string")
 })
