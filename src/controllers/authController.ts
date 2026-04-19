@@ -9,6 +9,9 @@ import { RecoveryChallengeRequestPayload, VerifyChallengeRequestPayload, VerifyR
 import authConfig from "../config/authConfig.js";
 import jwt from "jsonwebtoken"
 import { InsertDevice } from "../models/Device.js";
+import redisClient from "../config/redisClient.js";
+import { revokedTokenCache } from "../helpers/redisKeys.js";
+import { assertAuth } from "../lib/utils/authUtils.js";
 
 interface UserInfoForClient {
   userid: number;
@@ -238,9 +241,32 @@ export async function verifyChallegeForRecovery(req: Request, res: Response, nex
   }
 }
 
+export async function logout(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    const auth = assertAuth(req)
+    const token = req.cookies.token
+    const expTime = auth.exp
+    const nowTime = Math.floor(Date.now()/1000)
+
+    const remainingTime = expTime - nowTime
+
+    if(remainingTime > 0) {
+      await redisClient.SETEX(revokedTokenCache.getKey(token), remainingTime, "1")
+    }
+
+    const response = createSuccessResponse("Logged out!")
+    res.clearCookie("token")
+    res.status(200).json(response)
+
+  } catch(error) {
+    next(error)
+  }
+} 
+
 export async function me(req: AuthRequest, res: Response, next: NextFunction) {
   try {
-    const userid = req.userId
+    const auth = assertAuth(req)
+    const userid = auth.userId
 
     if(!userid) {
       throw new NotFoundError("User not Found")

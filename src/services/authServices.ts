@@ -13,6 +13,7 @@ import db from "../config/db.js"
 import { InsertDevice } from "../models/Device.js"
 import { ChallengeRequestPayload, RegistrationRequestPayload, VerifyChallengeRequestPayload } from "../zod/schema.js"
 import redisClient from "../config/redisClient.js"
+import { authNonceCache } from "../helpers/redisKeys.js"
 import { verifyDeviceSignature, verifyIdentitySignature } from "../lib/crypto/verifySignature.js"
 import { generateXBytesNonce } from "../lib/crypto/random.js"
 
@@ -128,9 +129,8 @@ export async function createNonceForLogin(userid: number, device_pbk: string, id
   const deviceNonce = generateXBytesNonce(32)
   const identityNonce = generateXBytesNonce(32)
 
-  const TTL = 180
-  await redisClient.setEx(`auth_nonce:${userid}:${device_pbk}`, TTL, deviceNonce)
-  await redisClient.setEx(`auth_nonce:${userid}:${identity_pbk}`, TTL, identityNonce)
+  await redisClient.setEx(authNonceCache.getKey(userid, device_pbk), authNonceCache.getTTL(), deviceNonce)
+  await redisClient.setEx(authNonceCache.getKey(userid, identity_pbk), authNonceCache.getTTL(), identityNonce)
 
   return {
     deviceNonce,
@@ -142,7 +142,7 @@ export async function createNonceForIdentity(userid: number, identity_pbk: strin
   const nonce = generateXBytesNonce(32)
 
   const TTL = 180
-  await redisClient.setEx(`auth_nonce:${userid}:${identity_pbk}`, TTL, nonce)
+  await redisClient.setEx(authNonceCache.getKey(userid, identity_pbk), authNonceCache.getTTL(), nonce)
 
   return nonce
 }
@@ -159,8 +159,8 @@ export async function verifyLoginSignatures(challengeInfo: VerifyChallengeReques
     )
   }
 
-  const savedDeviceNonce = await redisClient.getDel(`auth_nonce:${challengeInfo.userid}:${publicKeys.device_pbk}`)
-  const savedIdentityNonce = await redisClient.getDel(`auth_nonce:${challengeInfo.userid}:${publicKeys.identity_pbk}`)
+  const savedDeviceNonce = await redisClient.getDel(authNonceCache.getKey(challengeInfo.userid, publicKeys.device_pbk))
+  const savedIdentityNonce = await redisClient.getDel(authNonceCache.getKey(challengeInfo.userid, publicKeys.identity_pbk))
 
   if(!savedDeviceNonce || !savedIdentityNonce) {
     throw new BadRequestError("Nonce not found", {
@@ -179,7 +179,7 @@ export async function verifyLoginSignatures(challengeInfo: VerifyChallengeReques
 }
 
 export async function verifyIdentitySignatureForRecovery(userid: number, identity_pbk: string, signature: string): Promise<boolean> {
-  const savedNonce = await redisClient.getDel(`auth_nonce:${userid}:${identity_pbk}`)
+  const savedNonce = await redisClient.getDel(authNonceCache.getKey(userid, identity_pbk))
   
   if(!savedNonce) {
     throw new BadRequestError("Nonce not found", {

@@ -1,11 +1,11 @@
-import { NextFunction, Request, Response, Router } from "express";
-import requireAuth from "../middlewares/requireAuth.js";
+import { NextFunction, Response, Router } from "express";
+import requireAuth, { AuthRequest } from "../middlewares/requireAuth.js";
 import { getConversationListForUser } from "../controllers/roomController.js";
 
 const router = Router()
 
 // protected routes
-router.get("/list", requireAuth, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/list", requireAuth, async (req: AuthRequest, res: Response, next: NextFunction) => {
   await getConversationListForUser(req, res, next)
 })
 

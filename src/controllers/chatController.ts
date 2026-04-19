@@ -12,7 +12,7 @@ import redisClient from "../config/redisClient.js"
 export async function getChatContext(req: Request, res: Response, next: NextFunction) {
   try {
 
-    const myId = assertAuth(req)
+    const myId = assertAuth(req).userId
     const result = UserIdParamsSchema.parse(req.params)
     const targetId = result.userid
 
@@ -53,7 +53,7 @@ export async function getChatContext(req: Request, res: Response, next: NextFunc
 export async function getChatHistory(req: Request, res: Response, next: NextFunction) {
   try {
 
-    const myId = assertAuth(req)
+    const myId = assertAuth(req).userId
     const result = HistoryQueryStringSchema.parse(req.query)
     const targetId = result.userid
     const beforeDate = result.before
@@ -90,7 +90,7 @@ export async function getChatHistory(req: Request, res: Response, next: NextFunc
 
 export async function sendNewMessage(req: Request, res: Response, next: NextFunction) {
   try {
-    const myId = assertAuth(req)
+    const myId = assertAuth(req).userId
     const payload = req.body as SendMessageRequestPayload
     const idStr = String(payload.partnerId)
     const partnerSocketIds = await redisClient.SMEMBERS(`user:online:${idStr}`)

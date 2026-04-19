@@ -1,12 +1,13 @@
 import { Request } from "express";
 import { UnauthorizedError } from "../../errors/HTTPErrors.js";
+import { AuthData } from "../../middlewares/requireAuth.js";
 
-export function assertAuth(req: Request): number {
-  const userId = (req as any).userId
+export function assertAuth(req: Request): AuthData {
+  const authData = (req as any).auth
 
-  if (!userId) {
+  if (!authData) {
     throw new UnauthorizedError()
   }
 
-  return userId as number
+  return authData as AuthData
 }

@@ -5,7 +5,7 @@ import { createSuccessResponse } from "../helpers/responseCreator.js"
 
 export async function getConversationListForUser(req: Request, res: Response, next: NextFunction) {
   try {
-    const userId = assertAuth(req)
+    const { userId } = assertAuth(req)
     const conversationData = await roomRepo.findRoomsForUser(userId)
     const response = createSuccessResponse("conversation list loaded", conversationData)
 

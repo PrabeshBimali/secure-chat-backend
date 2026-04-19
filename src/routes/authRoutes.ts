@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response, Router } from "express";
-import { requestChallenge, me, registerUser, sendEmailVerificationLink, verifyEmail, verifyChallenge, requestChallengeForRecovery, verifyChallegeForRecovery } from "../controllers/authController.js";
+import { requestChallenge, me, registerUser, sendEmailVerificationLink, verifyEmail, verifyChallenge, requestChallengeForRecovery, verifyChallegeForRecovery, logout } from "../controllers/authController.js";
 import requireAuth from "../middlewares/requireAuth.js";
 import { validateRequestBody } from "../middlewares/validate.js";
 import { ChallengeRequestSchema, RecoveryChallengeRequestSchema, RegistrationRequestSchema, VerifyChallengeRequestSchema, VerifyRecoveryChallengeRequestSchema } from "../zod/schema.js";
@@ -37,7 +37,11 @@ router.post("/recovery/verify", validateRequestBody(VerifyRecoveryChallengeReque
 
 // protected routes
 
-router.get("/me", requireAuth ,async (req: Request, res: Response, next: NextFunction) => {
+router.post("/logout", requireAuth, async (req: Request, res: Response, next: NextFunction) => {
+  await logout(req, res, next)
+})
+
+router.get("/me", requireAuth, async (req: Request, res: Response, next: NextFunction) => {
   await me(req, res, next)
 })
 
