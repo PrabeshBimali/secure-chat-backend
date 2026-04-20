@@ -224,7 +224,7 @@ export async function createEmailVerificationToken(userId: number, email: string
 }
 
 export async function sendEmailVerification(email: string, token: string) {
-  const verificationUrl = `${appConfig.frontendUrl}?token=${token}`;
+  const verificationUrl = `${appConfig.frontendUrl}/verify-email?token=${token}`;
   const mailOptions = {
       from: authConfig.serverEmail,
       to: email,

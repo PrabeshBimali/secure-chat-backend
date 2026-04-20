@@ -31,6 +31,16 @@ export async function insertMember(roomid: string, userid: number, client?: Pool
   await db.query(query, [userid, roomid])
 }
 
+export async function updateLastMessageAt(roomid: string, date: Date, client?: PoolClient) {
+  const query = `UPDATE rooms SET last_message_at = $1 WHERE id = $2`
+
+  if(client) {
+    await client.query(query, [date, roomid])
+    return
+  }
+  await db.query(query, [date, roomid])
+}
+
 export async function findRoomsForUser(userid: number): Promise<Array<ConversationData>> {
   const query = `
     SELECT 

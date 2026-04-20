@@ -24,6 +24,7 @@ export async function addMessage(myId: number, targetId: number, cipherText: str
       await friendsRepo.insert(Math.min(myId, targetId), Math.max(myId, targetId), myId, roomid, client)
       const status = isPartnerOnline ? "delivered" : "sent"
       const message = await messageRepo.insert(cipherText, iv, status, myId, roomid, client)
+      await roomRepo.updateLastMessageAt(roomid, message.createdAt)
       await client.query("COMMIT")
       return message
     }
@@ -64,13 +65,14 @@ export async function addMessage(myId: number, targetId: number, cipherText: str
 
     const status = isPartnerOnline ? "delivered" : "sent"
     const message = await messageRepo.insert(cipherText, iv, status, myId, relationship.roomid, client)
+    await roomRepo.updateLastMessageAt(relationship.roomid, message.createdAt)
     await client.query("COMMIT")
 
     return message
   } catch(error) {
-    await client.query("ROLLBACK")
-    throw error
+      await client.query("ROLLBACK")
+      throw error
   } finally {
-    client.release()
+      client.release()
   }
 }
