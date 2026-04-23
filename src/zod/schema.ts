@@ -1,6 +1,7 @@
 import * as z from "zod"
 
 const hexRegex = /^[0-9a-fA-F]+$/;
+const usernameRegex = /^[a-zA-Z][a-zA-Z0-9_]*$/
 
 const DeviceSchema = z.object({
   name: z.string().min(5).max(255),
@@ -10,7 +11,7 @@ const DeviceSchema = z.object({
 })
 
 export const RegistrationRequestSchema = z.strictObject({
-  username: z.string().min(4).max(36).trim().toLowerCase(),
+  username: z.string().min(4).max(36).regex(usernameRegex, "Only letters, numbers, and underscores are allowed").trim().toLowerCase(),
   email: z.email().trim().toLowerCase(),
   identity_pbk: z.string().length(64).regex(hexRegex, "Must be valid Hex string."),
   encryption_pbk: z.string().length(64).regex(hexRegex, "Must be valid Hex string."),

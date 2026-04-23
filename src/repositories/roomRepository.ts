@@ -44,7 +44,7 @@ export async function updateLastMessageAt(roomid: string, date: Date, client?: P
 export async function findRoomsForUser(userid: number): Promise<Array<ConversationData>> {
   const query = `
     SELECT 
-	   r.id AS "roomId",
+	    r.id AS "roomId",
       other_members.userid AS "partnerId", 
       u.username AS "partnerName", 
       r.last_message_at AS "lastMessageAt"

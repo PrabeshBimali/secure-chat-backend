@@ -141,7 +141,6 @@ export async function createNonceForLogin(userid: number, device_pbk: string, id
 export async function createNonceForIdentity(userid: number, identity_pbk: string): Promise<string> {
   const nonce = generateXBytesNonce(32)
 
-  const TTL = 180
   await redisClient.setEx(authNonceCache.getKey(userid, identity_pbk), authNonceCache.getTTL(), nonce)
 
   return nonce
